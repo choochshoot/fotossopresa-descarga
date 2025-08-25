@@ -41,14 +41,6 @@
     footer{text-align:center;padding:1.2rem;background:#1a1a1a;color:#ddd;margin-top:2rem;}
     .footer-logo{font-size:1.1rem;font-weight:bold;margin-bottom:.6rem;color:white;}
     .footer-logo span{color:#ff6b6b;}
-    .loading{display:none;flex-direction:column;align-items:center;justify-content:center;padding:2rem;}
-    .loading i{font-size:2rem;margin-bottom:1rem;color:#666;animation:spin 1s linear infinite;}
-    @keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
-    .no-results{text-align:center;padding:2rem;display:none;}
-    .no-results i{font-size:3rem;margin-bottom:1rem;color:#ccc;}
-    .error-message{text-align:center;padding:1rem;color:#e74c3c;background:#ffeaea;border-radius:8px;margin:1rem 0;display:none;}
-    @media (min-width:768px){.gallery{grid-template-columns:repeat(3,1fr);}}
-    @media (min-width:1024px){.gallery{grid-template-columns:repeat(4,1fr);}}
   </style>
 </head>
 <body>
@@ -73,19 +65,10 @@
 </header>
 
 <div class="gallery-container">
-  <div id="errorMessage" class="error-message">
-    <i class="fas fa-exclamation-circle"></i>
-    <p id="errorText"></p>
-  </div>
   <div id="gallery" class="gallery"></div>
   <div id="loading" class="loading">
     <i class="fas fa-spinner"></i>
     <p>Cargando imágenes...</p>
-  </div>
-  <div id="noResults" class="no-results">
-    <i class="fas fa-image"></i>
-    <h3>No se encontraron imágenes</h3>
-    <p>Intenta con otros términos de búsqueda</p>
   </div>
 </div>
 
@@ -98,351 +81,95 @@
 </footer>
 
 <script>
-  // Configuración de Supabase
   const SUPABASE_URL = 'https://cskqlyauszpgjvwgenth.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNza3FseWF1c3pwZ2p2d2dlbnRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2MTY4ODMsImV4cCI6MjA3MDE5Mjg4M30.HAZEfpAH2AZzoDBmsUOe3O33oAFbcRIJksZLOyeRvPk';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  const BUCKET_NAME = 'imagenes-usuarios';
 
-  // Elementos del DOM
   const gallery = document.getElementById('gallery');
   const loading = document.getElementById('loading');
   const searchInput = document.getElementById('searchInput');
   const loadedImages = document.getElementById('loadedImages');
   const totalImages = document.getElementById('totalImages');
-  const noResults = document.getElementById('noResults');
-  const downloadAllBtn = document.getElementById('downloadAllBtn');
-  const errorMessage = document.getElementById('errorMessage');
-  const errorText = document.getElementById('errorText');
 
-  // Variables de estado
-  let currentPage = 1;
-  const itemsPerPage = 16;
-  let isLoading = false;
-  let allDataLoaded = false;
-  let imagesData = [];
-  let totalImagesCount = 0;
-  let searchTerm = '';
-  let debounceTimer;
+  let currentPage=1,itemsPerPage=16,isLoading=false,allDataLoaded=false,imagesData=[],totalImagesCount=0;
 
-  // Inicialización
-  async function init() {
-    try {
-      await getTotalImagesCount();
-      await loadImages();
-      setupEventListeners();
-    } catch (error) {
-      showError('Error al inicializar la aplicación: ' + error.message);
-    }
-  }
-
-  // Obtener el conteo total de imágenes
-  async function getTotalImagesCount() {
-    try {
-      const { count, error } = await supabase
-        .from('mensajes')
-        .select('*', { count: 'exact', head: true });
-      
-      if (error) throw error;
-      totalImagesCount = count;
-      totalImages.textContent = count;
-    } catch (error) {
-      console.error('Error al obtener el conteo total:', error);
-      showError('Error al cargar el conteo de imágenes');
-    }
-  }
-
-  // Cargar imágenes desde Supabase
-  async function loadImages() {
-    if (isLoading || allDataLoaded) return;
-    
-    isLoading = true;
-    loading.style.display = 'flex';
-    noResults.style.display = 'none';
-    errorMessage.style.display = 'none';
-
-    try {
-      let query = supabase
-        .from('mensajes')
-        .select('id, nombre, mensaje, imagen_url, created_at')
-        .order('created_at', { ascending: false })
-        .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
-
-      if (searchTerm) {
-        query = query.ilike('nombre', `%${searchTerm}%`);
-      }
-
-      const { data, error } = await query;
-      
-      if (error) throw error;
-
-      if (!data || data.length === 0) {
-        if (currentPage === 1) {
-          noResults.style.display = 'block';
-          gallery.innerHTML = '';
-        }
-        allDataLoaded = true;
-        return;
-      }
-
-      // Procesar y mostrar imágenes
-      await processAndDisplayImages(data);
-      
-      currentPage++;
-      loadedImages.textContent = imagesData.length;
-      
-    } catch (error) {
-      console.error('Error al cargar imágenes:', error);
-      showError('Error al cargar las imágenes: ' + error.message);
-    } finally {
-      isLoading = false;
-      loading.style.display = 'none';
-    }
-  }
-
-  // Procesar y mostrar imágenes
-  async function processAndDisplayImages(data) {
-    for (const item of data) {
-      // Verificar si la imagen ya está en la galería
-      if (!imagesData.some(img => img.id === item.id)) {
-        imagesData.push(item);
-        
-        try {
-          // Obtener URL firmada de la imagen desde Supabase Storage
-          const { data: signedUrlData, error: signedUrlError } = await supabase
-            .storage
-            .from(BUCKET_NAME)
-            .createSignedUrl(item.imagen_url, 3600); // URL válida por 1 hora
-          
-          if (signedUrlError) {
-            console.warn('Error al obtener URL firmada, intentando con URL pública:', signedUrlError);
-            // Fallback a URL pública si la firmada falla
-            const { data: { publicUrl } } = supabase
-              .storage
-              .from(BUCKET_NAME)
-              .getPublicUrl(item.imagen_url);
-            
-            item.imageUrl = publicUrl;
-          } else {
-            item.imageUrl = signedUrlData.signedUrl;
-          }
-          
-          createGalleryItem(item);
-        } catch (error) {
-          console.error('Error al procesar imagen:', error, item);
-          // Crear elemento de todas formas pero con indicador de error
-          item.imageUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkeT0iLjM1ZW0iIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5Ij5FcnJvciBjYXJnYW5kbyBpbWFnZW48L3RleHQ+PC9zdmc+';
-          item.error = true;
-          createGalleryItem(item);
-        }
-      }
-    }
-  }
-
-  // Crear elemento de galería
-  function createGalleryItem(item) {
-    const div = document.createElement('div');
-    div.className = 'gallery-item';
-    div.dataset.id = item.id;
-    
-    const imageContainer = document.createElement('div');
-    imageContainer.className = 'image-container';
-    
-    const img = document.createElement('img');
-    img.className = 'gallery-image';
-    img.alt = `Imagen de ${item.nombre || 'Anónimo'}`;
-    
-    // Cargar imagen con manejo de errores
-    loadImageWithFallback(img, item.imageUrl, item);
-    
-    const info = document.createElement('div');
-    info.className = 'gallery-info';
-    info.innerHTML = `
-      <div class="user-name"><i class="fas fa-user"></i>${item.nombre || 'Anónimo'}</div>
-      <div class="message-preview">${item.mensaje || ''}</div>
-    `;
-    
-    imageContainer.appendChild(img);
-    div.appendChild(imageContainer);
-    div.appendChild(info);
-    gallery.appendChild(div);
-  }
-
-  // Cargar imagen con manejo de errores
-  function loadImageWithFallback(imgElement, url, item) {
-    imgElement.onload = function() {
-      this.classList.add('loaded');
-    };
-    
-    imgElement.onerror = function() {
-      console.error('Error cargando imagen:', url);
-      // Si falla la carga, mostrar imagen de placeholder
-      this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkeT0iLjM1ZW0iIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjY2NjIj5JbWFnZW4gbm8gZGlzcG9uaWJsZTwvdGV4dD48L3N2Zz4';
-      this.alt = 'Imagen no disponible';
-      this.classList.add('loaded');
-    };
-    
-    imgElement.src = url;
-  }
-
-  // Mostrar mensaje de error
-  function showError(message) {
-    errorText.textContent = message;
-    errorMessage.style.display = 'block';
-  }
-
-  // Configurar event listeners
-  function setupEventListeners() {
-    // Búsqueda con debounce
-    searchInput.addEventListener('input', function() {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        searchTerm = this.value.trim();
-        resetAndLoadImages();
-      }, 500);
-    });
-
-    // Descargar todas las imágenes
-    downloadAllBtn.addEventListener('click', downloadAllImages);
-
-    // Paginación infinita
-    window.addEventListener('scroll', throttle(() => {
-      const scrollPosition = window.scrollY + window.innerHeight;
-      const pageHeight = document.documentElement.scrollHeight - 100;
-      
-      if (scrollPosition >= pageHeight && !isLoading && !allDataLoaded) {
-        loadImages();
-      }
-    }, 500));
-  }
-
-  // Reiniciar y cargar imágenes (para búsquedas)
-  function resetAndLoadImages() {
-    currentPage = 1;
-    imagesData = [];
-    allDataLoaded = false;
-    gallery.innerHTML = '';
-    loadImages();
-  }
-
-  // Función throttle para scroll
-  function throttle(callback, delay) {
-    let lastCall = 0;
-    return function() {
-      const now = new Date().getTime();
-      if (now - lastCall >= delay) {
-        lastCall = now;
-        callback.apply(this, arguments);
-      }
-    };
-  }
-
-  // Verificar si es HEIC
-  function isHeic(url) {
-    return url.toLowerCase().endsWith('.heic');
-  }
-
-  // Convertir HEIC a JPEG
-  async function convertHeicToJpeg(heicUrl) {
-    try {
-      const response = await fetch(heicUrl);
-      const blob = await response.blob();
-      const jpegBlob = await heic2any({ blob: blob, toType: 'image/jpeg', quality: 0.8 });
+  function isHeic(url){return url.toLowerCase().endsWith('.heic');}
+  async function convertHeicToJpeg(heicUrl){
+    try{
+      const response=await fetch(heicUrl);
+      const blob=await response.blob();
+      const jpegBlob=await heic2any({blob:blob,toType:'image/jpeg',quality:.8});
       return URL.createObjectURL(jpegBlob);
-    } catch (e) {
-      console.error('Error convirtiendo HEIC a JPEG:', e);
-      return heicUrl;
-    }
+    }catch(e){return heicUrl;}
   }
 
-  // Convertir a PNG
-  async function convertToPng(url) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        canvas.getContext("2d").drawImage(img, 0, 0);
-        canvas.toBlob(blob => resolve(blob), "image/png");
+  async function loadImages(searchTerm=''){
+    if(isLoading) return; isLoading=true; loading.style.display='flex';
+    try{
+      let query=supabase.from('mensajes')
+        .select('nombre,mensaje,imagen_url,created_at',{count:'exact'})
+        .order('created_at',{ascending:false})
+        .range((currentPage-1)*itemsPerPage,currentPage*itemsPerPage-1);
+      if(searchTerm) query=query.ilike('nombre',`%${searchTerm}%`);
+      const {data,error,count}=await query; if(error) throw error;
+      if(!data||!data.length){allDataLoaded=true;return;}
+      loadedImages.textContent=imagesData.length+data.length;
+      for(const item of data){
+        if(!imagesData.some(img=>img.imagen_url===item.imagen_url)){
+          imagesData.push(item); createGalleryItem(item);
+        }
+      }
+      currentPage++;
+    }catch(e){console.error(e);}finally{isLoading=false;loading.style.display='none';}
+  }
+
+  function createGalleryItem(item){
+    const div=document.createElement('div');div.className='gallery-item';
+    const img=document.createElement('img');img.className='gallery-image';img.src=item.imagen_url;
+    const info=document.createElement('div');info.className='gallery-info';
+    info.innerHTML=`<div class="user-name"><i class="fas fa-user"></i>${item.nombre||'Anónimo'}</div>
+    <div class="message-preview">${item.mensaje||''}</div>`;
+    div.appendChild(img);div.appendChild(info);gallery.appendChild(div);
+  }
+
+  // --- DESCARGAR TODAS ---
+  async function convertToPng(url){
+    return new Promise((resolve,reject)=>{
+      const img=new Image();img.crossOrigin="anonymous";
+      img.onload=()=>{
+        const canvas=document.createElement("canvas");canvas.width=img.width;canvas.height=img.height;
+        canvas.getContext("2d").drawImage(img,0,0);
+        canvas.toBlob(blob=>resolve(blob),"image/png");
       };
-      img.onerror = () => reject("Error al cargar la imagen");
-      img.src = url;
+      img.onerror=()=>reject("Error"); img.src=url;
     });
   }
 
-  // Descargar blob
-  function downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+  function downloadBlob(blob,filename){
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();
+    a.remove();URL.revokeObjectURL(url);
   }
 
-  // Descargar todas las imágenes
-  async function downloadAllImages() {
-    if (imagesData.length === 0) {
-      alert("No hay imágenes cargadas.");
-      return;
-    }
-
-    downloadAllBtn.disabled = true;
-    const originalText = downloadAllBtn.innerHTML;
-    downloadAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Descargando...';
-
-    const nameCount = {};
-    let successfulDownloads = 0;
-    
-    for (const [index, item] of imagesData.entries()) {
-      try {
-        // Solo intentar descargar si la imagen no tiene error
-        if (!item.error) {
-          let imageUrl = item.imageUrl || item.imagen_url;
-          
-          // Si es HEIC, convertir primero
-          if (isHeic(imageUrl)) {
-            imageUrl = await convertHeicToJpeg(imageUrl);
-          }
-          
-          const pngBlob = await convertToPng(imageUrl);
-          let safeName = (item.nombre || "Anonimo").replace(/[^a-z0-9]/gi, "_");
-          nameCount[safeName] = (nameCount[safeName] || 0) + 1;
-          const filename = `${safeName}_${nameCount[safeName]}.png`;
-          
-          downloadBlob(pngBlob, filename);
-          successfulDownloads++;
-          
-          // Pequeña pausa entre descargas para evitar bloqueos del navegador
-          await new Promise(r => setTimeout(r, 300));
-        }
-
-        // Actualizar texto del botón con progreso
-        if (imagesData.length > 1) {
-          const progress = Math.round(((index + 1) / imagesData.length) * 100);
-          downloadAllBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Descargando (${progress}%)`;
-        }
-      } catch (e) {
-        console.error("Error descargando imagen:", e, item);
-      }
-    }
-    
-    downloadAllBtn.disabled = false;
-    downloadAllBtn.innerHTML = originalText;
-    
-    if (successfulDownloads > 0) {
-      alert(`Descarga completada. Se descargaron ${successfulDownloads} de ${imagesData.length} imágenes.`);
-    } else {
-      alert("No se pudo descargar ninguna imagen. Verifica la consola para más detalles.");
+  async function downloadAllImages(){
+    if(imagesData.length===0){alert("No hay imágenes cargadas.");return;}
+    const nameCount={};
+    for(const item of imagesData){
+      try{
+        const url=isHeic(item.imagen_url)?await convertHeicToJpeg(item.imagen_url):item.imagen_url;
+        const pngBlob=await convertToPng(url);
+        let safeName=(item.nombre||"Anonimo").replace(/[^a-z0-9]/gi,"_");
+        nameCount[safeName]=(nameCount[safeName]||0)+1;
+        const filename=`${safeName}_${nameCount[safeName]}.png`;
+        downloadBlob(pngBlob,filename);
+        await new Promise(r=>setTimeout(r,400));
+      }catch(e){console.error("Error:",e);}
     }
   }
+  document.getElementById("downloadAllBtn").addEventListener("click",downloadAllImages);
 
-  // Iniciar la aplicación
-  document.addEventListener('DOMContentLoaded', init);
+  window.addEventListener("DOMContentLoaded",()=>{loadImages();});
 </script>
 </body>
 </html>
+
