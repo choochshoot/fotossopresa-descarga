@@ -91,7 +91,7 @@
   const loadedImages = document.getElementById('loadedImages');
   const totalImages = document.getElementById('totalImages');
 
-  let currentPage=1,itemsPerPage=16,isLoading=false,allDataLoaded=false,imagesData=[],totalImagesCount=0;
+  let currentPage=1,itemsPerPage=200,isLoading=false,allDataLoaded=false,imagesData=[],totalImagesCount=0;
 
   function isHeic(url){return url.toLowerCase().endsWith('.heic');}
   async function convertHeicToJpeg(heicUrl){
