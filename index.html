@@ -1,174 +1,901 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Galería de Fotos - Sorpresa de Invitados</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://unpkg.com/@supabase/supabase-js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.3/dist/heic2any.min.js"></script>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter','Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
-    body{background:linear-gradient(to bottom,#f8f9fa,#e9ecef);color:#212529;line-height:1.6;overflow-x:hidden;min-height:100vh;}
-    header{background:linear-gradient(135deg,#1a1a1a 0%,#000 100%);color:white;text-align:center;padding:1.2rem 0;box-shadow:0 4px 12px rgba(0,0,0,0.1);position:sticky;top:0;z-index:100;}
-    .header-content{max-width:1200px;margin:0 auto;padding:0 1rem;}
-    h1{font-size:1.5rem;letter-spacing:.5px;margin-bottom:.4rem;font-weight:700;}
-    .subtitle{font-size:.85rem;opacity:.85;font-weight:300;max-width:600px;margin:0 auto;}
-    .controls{display:flex;justify-content:center;gap:1rem;margin-top:1.2rem;flex-wrap:wrap;}
-    .search-container{position:relative;max-width:350px;width:100%;}
-    .search-container input{width:100%;padding:.7rem 1rem;padding-left:2.8rem;border-radius:50px;border:1px solid #ddd;font-size:.9rem;background-color:white;box-shadow:0 2px 8px rgba(0,0,0,0.05);}
-    .search-container i{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:#777;font-size:.9rem;}
-    .download-btn{background:#ff6b6b;border:none;padding:.7rem 1.2rem;border-radius:50px;color:white;font-size:.9rem;font-weight:600;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,0.2);transition:all .3s ease;}
-    .download-btn:hover{background:#e55353;transform:translateY(-2px);}
-    .gallery-container{max-width:1400px;margin:1.2rem auto;padding:0 .8rem;}
-    .gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem;}
-    .gallery-item{background:white;border-radius:8px;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,0.03);display:flex;flex-direction:column;animation:fadeIn .5s ease forwards;}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-    .image-container{position:relative;width:100%;padding-top:100%;overflow:hidden;background:linear-gradient(45deg,#f5f5f5,#eaeaea);}
-    .gallery-image{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;transition:opacity .5s ease;opacity:0;}
-    .gallery-image.loaded{opacity:1;}
-    .gallery-info{padding:.7rem;}
-    .user-name{font-weight:600;font-size:.9rem;margin-bottom:.3rem;color:#1a1a1a;display:flex;align-items:center;gap:.4rem;}
-    .user-name i{color:#777;font-size:.8rem;}
-    .message-preview{font-size:.8rem;color:#666;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical;display:-webkit-box;}
-    .stats-container{display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;margin-top:.8rem;}
-    .stat-card{background:rgba(255,255,255,.15);padding:.6rem 1.2rem;border-radius:50px;display:flex;align-items:center;gap:.6rem;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
-    .stat-card i{font-size:1rem;color:#ffd43b;}
-    .stat-card span{font-weight:500;font-size:.95rem;}
-    footer{text-align:center;padding:1.2rem;background:#1a1a1a;color:#ddd;margin-top:2rem;}
-    .footer-logo{font-size:1.1rem;font-weight:bold;margin-bottom:.6rem;color:white;}
-    .footer-logo span{color:#ff6b6b;}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galería de Fotos - Sorpresa de Invitados</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js"></script>
+    <!-- Librería para decodificar HEIC -->
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.3/dist/heic2any.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+            color: #212529;
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #000 100%);
+            color: white;
+            text-align: center;
+            padding: 1.2rem 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.4rem;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            font-size: 0.85rem;
+            opacity: .85;
+            font-weight: 300;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.2rem;
+            flex-wrap: wrap;
+        }
+        
+        .stats-container {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.8rem;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .stat-card i {
+            font-size: 1rem;
+            color: #ffd43b;
+        }
+        
+        .stat-card span {
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+        
+        .search-container {
+            position: relative;
+            max-width: 350px;
+            width: 100%;
+        }
+        
+        .search-container input {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            padding-left: 2.8rem;
+            border-radius: 50px;
+            border: 1px solid #ddd;
+            font-size: 0.9rem;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .search-container input:focus {
+            outline: none;
+            border-color: #6c757d;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        
+        .search-container i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #777;
+            font-size: 0.9rem;
+        }
+        
+        .gallery-container {
+            max-width: 1400px;
+            margin: 1.2rem auto;
+            padding: 0 0.8rem;
+        }
+        
+        /* GALERÍA MEJORADA PARA MOBILE */
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.7rem;
+        }
+        
+        .gallery-item {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.03);
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(0);
+            opacity: 1;
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .gallery-item:active {
+            transform: scale(0.97);
+        }
+        
+        .image-container {
+            position: relative;
+            width: 100%;
+            padding-top: 100%; /* Aspect ratio 1:1 */
+            overflow: hidden;
+            background: linear-gradient(45deg, #f5f5f5, #eaeaea);
+        }
+        
+        .gallery-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .gallery-image.loaded {
+            opacity: 1;
+        }
+        
+        .gallery-info {
+            padding: 0.7rem;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        
+        .user-name i {
+            color: #777;
+            font-size: 0.8rem;
+        }
+        
+        .message-preview {
+            font-size: 0.8rem;
+            color: #666;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            position: relative;
+            padding: 0.2rem 0;
+            line-height: 1.4;
+        }
+        
+        .message-preview::after {
+            content: "Toca para ver más";
+            display: block;
+            font-size: 0.7rem;
+            color: #999;
+            margin-top: 0.2rem;
+            font-style: italic;
+        }
+        
+        .stats {
+            text-align: center;
+            margin: 1.2rem 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        /* MODAL MEJORADO PARA MOBILE */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.98);
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 0.8rem;
+        }
+        
+        .modal-content {
+            max-width: 95%;
+            max-height: 55vh;
+            object-fit: contain;
+            border-radius: 6px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 0.4s ease;
+        }
+        
+        .modal-content.loaded {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .modal-message {
+            color: white;
+            text-align: center;
+            margin-top: 1rem;
+            max-width: 95%;
+            font-size: 1rem;
+            padding: 0.8rem;
+            background: rgba(30,30,30,0.7);
+            border-radius: 6px;
+            line-height: 1.5;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.4s ease 0.1s;
+        }
+        
+        .modal-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            color: white;
+            font-size: 1.8rem;
+            cursor: pointer;
+            background: rgba(0,0,0,0.4);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            transition: all 0.3s;
+        }
+        
+        .close-modal:hover {
+            background: rgba(200,0,0,0.7);
+            transform: rotate(90deg);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            font-size: 1.1rem;
+            color: #555;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .loading i {
+            font-size: 1.8rem;
+            margin-bottom: 0.8rem;
+            color: #333;
+            animation: spin 1.5s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 1.2rem;
+            background: #fff8f8;
+            border: 1px solid #ffcccc;
+            border-radius: 6px;
+            color: #d9534f;
+            margin: 1rem;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 1.2rem;
+            background: #1a1a1a;
+            color: #ddd;
+            margin-top: 2rem;
+        }
+        
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .footer-logo {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 0.6rem;
+            color: white;
+        }
+        
+        .footer-logo span {
+            color: #ff6b6b;
+        }
+        
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .social-links a {
+            color: #bbb;
+            font-size: 1.3rem;
+            transition: color 0.3s;
+        }
+        
+        .copyright {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 0.4rem;
+        }
+        
+        /* MEJORAS PARA TABLET Y DESKTOP */
+        @media (min-width: 768px) {
+            h1 { font-size: 1.8rem; }
+            .subtitle { font-size: 0.95rem; }
+            .gallery { grid-template-columns: repeat(3, 1fr); gap: 0.9rem; }
+            .gallery-item { box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+            .modal-content { max-height: 65vh; }
+        }
+        
+        @media (min-width: 1024px) {
+            .gallery { grid-template-columns: repeat(4, 1fr); }
+            .controls {
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+        
+        /* Optimizaciones de rendimiento */
+        .gallery-image {
+            background-color: #f0f0f0;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .skeleton {
+            animation: skeleton-loading 1.5s linear infinite alternate;
+        }
+        
+        @keyframes skeleton-loading {
+            0% { background-color: #f0f0f0; }
+            100% { background-color: #e0e0e0; }
+        }
+        
+        /* Indicador de formato HEIC */
+        .heic-badge {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            z-index: 10;
+        }
+    </style>
 </head>
 <body>
 <header>
-  <div class="header-content">
-    <h1>FOTOS PARA SOPRESA PARA INVITADOS</h1>
-    <p class="subtitle">Una colección especial de momentos compartidos por nuestros invitados</p>
-    <div class="controls">
-      <div class="search-container">
+    <div class="header-content">
+        <h1>FOTOS PARA SOPRESA PARA INVITADOS</h1>
+        <p class="subtitle">Una colección especial de momentos compartidos por nuestros invitados</p>
+        <!-- Controles: búsqueda + botón de descarga -->
+<div class="controls">
+    <div class="search-container">
         <i class="fas fa-search"></i>
         <input type="text" id="searchInput" placeholder="Buscar por nombre...">
-      </div>
-      <button id="downloadAllBtn" class="download-btn">
-        <i class="fas fa-download"></i> Descargar todas
-      </button>
     </div>
-    <div class="stats-container">
-      <div class="stat-card"><i class="fas fa-images"></i><span>Fotos cargadas: <span id="loadedImages">0</span></span></div>
-      <div class="stat-card"><i class="fas fa-database"></i><span>Total fotos compartidas: <span id="totalImages">0</span></span></div>
+    <button id="downloadAllBtn" class="download-btn">
+        <i class="fas fa-file-archive"></i> Descargar ZIP
+    </button>
+</div>
+
+<style>
+.download-btn {
+    background: #ff6b6b;
+    border: none;
+    padding: 0.7rem 1.2rem;
+    border-radius: 50px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+.download-btn:hover {
+    background: #e55353;
+    transform: translateY(-2px);
+}
+</style>
+
+        
+        <!-- Nuevo contenedor para estadísticas -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <i class="fas fa-images"></i>
+                <span>Fotos cargadas: <span id="loadedImages">0</span></span>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-database"></i>
+                <span>Total fotos compartidas: <span id="totalImages">0</span></span>
+            </div>
+        </div>
     </div>
-  </div>
 </header>
 
 <div class="gallery-container">
-  <div id="gallery" class="gallery"></div>
-  <div id="loading" class="loading">
-    <i class="fas fa-spinner"></i>
-    <p>Cargando imágenes...</p>
-  </div>
+    <div id="gallery" class="gallery"></div>
+    <div id="loading" class="loading">
+        <i class="fas fa-spinner"></i>
+        <p>Cargando imágenes...</p>
+    </div>
+    <div id="loadMore" class="loading" style="display: none; padding: 1rem;">
+        <i class="fas fa-spinner"></i>
+        <p>Cargando más imágenes...</p>
+    </div>
+</div>
+
+<div id="imageModal" class="modal">
+    <div class="close-modal" onclick="closeModal()">×</div>
+    <img id="modalImage" class="modal-content">
+    <div id="modalMessage" class="modal-message"></div>
 </div>
 
 <footer>
-  <div class="footer-content">
-    <div class="footer-logo">Sorpresa<span>Invitados</span></div>
-    <p>Comparte momentos especiales con tus seres queridos</p>
-    <p class="copyright">© 2023 Galería de Sorpresas. Todos los derechos reservados.</p>
-  </div>
+    <div class="footer-content">
+        <div class="footer-logo">Sorpresa<span>Invitados</span></div>
+        <p>Comparte momentos especiales con tus seres queridos</p>
+        <div class="social-links">
+            <a href="#"><i class="fab fa-facebook"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fab fa-pinterest"></i></a>
+        </div>
+        <p class="copyright">© 2023 Galería de Sorpresas. Todos los derechos reservados.</p>
+    </div>
 </footer>
 
 <script>
-  const SUPABASE_URL = 'https://cskqlyauszpgjvwgenth.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNza3FseWF1c3pwZ2p2d2dlbnRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2MTY4ODMsImV4cCI6MjA3MDE5Mjg4M30.HAZEfpAH2AZzoDBmsUOe3O33oAFbcRIJksZLOyeRvPk';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Inserta aquí tus credenciales de Supabase
+    const SUPABASE_URL = 'https://cskqlyauszpgjvwgenth.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNza3FseWF1c3pwZ2p2d2dlbnRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2MTY4ODMsImV4cCI6MjA3MDE5Mjg4M30.HAZEfpAH2AZzoDBmsUOe3O33oAFbcRIJksZLOyeRvPk';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  const gallery = document.getElementById('gallery');
-  const loading = document.getElementById('loading');
-  const searchInput = document.getElementById('searchInput');
-  const loadedImages = document.getElementById('loadedImages');
-  const totalImages = document.getElementById('totalImages');
+    // Referencias a elementos DOM
+    const gallery = document.getElementById('gallery');
+    const loading = document.getElementById('loading');
+    const loadMore = document.getElementById('loadMore');
+    const imageModal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const modalMessage = document.getElementById('modalMessage');
+    const searchInput = document.getElementById('searchInput');
+    const loadedImages = document.getElementById('loadedImages');
+    const totalImages = document.getElementById('totalImages');
 
-  let currentPage=1,itemsPerPage=16,isLoading=false,allDataLoaded=false,imagesData=[],totalImagesCount=0;
+    // Variables de estado
+    let currentPage = 1;
+    const itemsPerPage = 16;
+    let isLoading = false;
+    let allDataLoaded = false;
+    let imagesData = [];
+    let searchTimeout = null;
+    let totalImagesCount = 0;
 
-  function isHeic(url){return url.toLowerCase().endsWith('.heic');}
-  async function convertHeicToJpeg(heicUrl){
-    try{
-      const response=await fetch(heicUrl);
-      const blob=await response.blob();
-      const jpegBlob=await heic2any({blob:blob,toType:'image/jpeg',quality:.8});
-      return URL.createObjectURL(jpegBlob);
-    }catch(e){return heicUrl;}
-  }
-
-  async function loadImages(searchTerm=''){
-    if(isLoading) return; isLoading=true; loading.style.display='flex';
-    try{
-      let query=supabase.from('mensajes')
-        .select('nombre,mensaje,imagen_url,created_at',{count:'exact'})
-        .order('created_at',{ascending:false})
-        .range((currentPage-1)*itemsPerPage,currentPage*itemsPerPage-1);
-      if(searchTerm) query=query.ilike('nombre',`%${searchTerm}%`);
-      const {data,error,count}=await query; if(error) throw error;
-      if(!data||!data.length){allDataLoaded=true;return;}
-      loadedImages.textContent=imagesData.length+data.length;
-      for(const item of data){
-        if(!imagesData.some(img=>img.imagen_url===item.imagen_url)){
-          imagesData.push(item); createGalleryItem(item);
+    // Función para obtener el total de imágenes en la base de datos
+    async function getTotalImagesCount() {
+        try {
+            const { count, error } = await supabase
+                .from('mensajes')
+                .select('*', { count: 'exact', head: true });
+            
+            if (error) throw error;
+            
+            totalImagesCount = count || 0;
+            totalImages.textContent = totalImagesCount;
+        } catch (error) {
+            console.error('Error obteniendo el total de imágenes:', error);
+            totalImages.textContent = '0';
         }
-      }
-      currentPage++;
-    }catch(e){console.error(e);}finally{isLoading=false;loading.style.display='none';}
-  }
-
-  function createGalleryItem(item){
-    const div=document.createElement('div');div.className='gallery-item';
-    const img=document.createElement('img');img.className='gallery-image';img.src=item.imagen_url;
-    const info=document.createElement('div');info.className='gallery-info';
-    info.innerHTML=`<div class="user-name"><i class="fas fa-user"></i>${item.nombre||'Anónimo'}</div>
-    <div class="message-preview">${item.mensaje||''}</div>`;
-    div.appendChild(img);div.appendChild(info);gallery.appendChild(div);
-  }
-
-  // --- DESCARGAR TODAS ---
-  async function convertToPng(url){
-    return new Promise((resolve,reject)=>{
-      const img=new Image();img.crossOrigin="anonymous";
-      img.onload=()=>{
-        const canvas=document.createElement("canvas");canvas.width=img.width;canvas.height=img.height;
-        canvas.getContext("2d").drawImage(img,0,0);
-        canvas.toBlob(blob=>resolve(blob),"image/png");
-      };
-      img.onerror=()=>reject("Error"); img.src=url;
-    });
-  }
-
-  function downloadBlob(blob,filename){
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();
-    a.remove();URL.revokeObjectURL(url);
-  }
-
-  async function downloadAllImages(){
-    if(imagesData.length===0){alert("No hay imágenes cargadas.");return;}
-    const nameCount={};
-    for(const item of imagesData){
-      try{
-        const url=isHeic(item.imagen_url)?await convertHeicToJpeg(item.imagen_url):item.imagen_url;
-        const pngBlob=await convertToPng(url);
-        let safeName=(item.nombre||"Anonimo").replace(/[^a-z0-9]/gi,"_");
-        nameCount[safeName]=(nameCount[safeName]||0)+1;
-        const filename=`${safeName}_${nameCount[safeName]}.png`;
-        downloadBlob(pngBlob,filename);
-        await new Promise(r=>setTimeout(r,400));
-      }catch(e){console.error("Error:",e);}
     }
-  }
-  document.getElementById("downloadAllBtn").addEventListener("click",downloadAllImages);
 
-  window.addEventListener("DOMContentLoaded",()=>{loadImages();});
+    // Función para convertir imágenes HEIC a JPEG
+    async function convertHeicToJpeg(heicUrl) {
+        try {
+            // Obtener la imagen HEIC como blob
+            const response = await fetch(heicUrl);
+            if (!response.ok) throw new Error('Error al obtener imagen HEIC');
+            
+            const blob = await response.blob();
+            
+            // Convertir HEIC a JPEG usando heic2any
+            const jpegBlob = await heic2any({
+                blob: blob,
+                toType: 'image/jpeg',
+                quality: 0.8 // Calidad del JPEG
+            });
+            
+            // Crear URL para el blob convertido
+            return URL.createObjectURL(jpegBlob);
+        } catch (error) {
+            console.error('Error al convertir HEIC a JPEG:', error);
+            return heicUrl; // Devuelve la URL original en caso de error
+        }
+    }
+
+    // Función para detectar si una URL es HEIC
+    function isHeic(url) {
+        return url.toLowerCase().endsWith('.heic');
+    }
+
+    // Observer para lazy loading
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                const src = img.dataset.src;
+                const isHeicImage = isHeic(src);
+                
+                if (isHeicImage) {
+                    // Convertir HEIC a JPEG
+                    convertHeicToJpeg(src).then(jpegUrl => {
+                        img.src = jpegUrl;
+                        img.classList.add('loaded');
+                        img.onerror = null;
+                    }).catch(error => {
+                        console.error('Error cargando imagen HEIC:', error);
+                        img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="300" height="200" fill="#f0f0f0"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#888" font-size="16">Imagen no disponible</text></svg>';
+                        img.classList.add('loaded');
+                    });
+                } else {
+                    // Carga normal
+                    const tempImg = new Image();
+                    tempImg.src = src;
+                    tempImg.onload = () => {
+                        img.src = src;
+                        img.classList.add('loaded');
+                        img.onerror = null;
+                    };
+                    
+                    tempImg.onerror = () => {
+                        img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="300" height="200" fill="#f0f0f0"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#888" font-size="16">Imagen no disponible</text></svg>';
+                        img.classList.add('loaded');
+                    };
+                }
+                
+                observer.unobserve(img);
+            }
+        });
+    }, {
+        rootMargin: '100px',
+        threshold: 0.01
+    });
+
+    // Función para cargar imágenes
+    async function loadImages(searchTerm = '') {
+        if (isLoading) return;
+        isLoading = true;
+        
+        if (!searchTerm && currentPage === 1) {
+            loading.style.display = 'flex';
+        } else if (!searchTerm) {
+            loadMore.style.display = 'flex';
+        }
+
+        try {
+            let query = supabase
+                .from('mensajes')
+                .select('nombre, mensaje, imagen_url, created_at', { count: 'exact' })
+                .order('created_at', { ascending: false });
+
+            if (searchTerm) {
+                query = query.ilike('nombre', `%${searchTerm}%`);
+            } else {
+                query = query.range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
+            }
+
+            const { data, error, count } = await query;
+            if (error) throw error;
+
+            if (searchTerm) {
+                gallery.innerHTML = '';
+                imagesData = [];
+            }
+
+            if (!data || data.length === 0) {
+                if (!searchTerm) allDataLoaded = true;
+                if (gallery.children.length === 0) {
+                    gallery.innerHTML = '<p class="error-message">No se encontraron imágenes</p>';
+                }
+                return;
+            }
+
+            // Actualizar contador de imágenes cargadas
+            loadedImages.textContent = imagesData.length + data.length;
+
+            for (const item of data) {
+                if (!item.imagen_url) continue;
+                
+                // Solo agregar si no existe ya
+                if (!imagesData.some(img => img.imagen_url === item.imagen_url)) {
+                    imagesData.push(item);
+                    createGalleryItem(item);
+                }
+            }
+
+            if (!searchTerm) currentPage++;
+        } catch (error) {
+            console.error('Error cargando datos:', error);
+            if (gallery.children.length === 0) {
+                gallery.innerHTML = '<p class="error-message">Error al cargar las imágenes.</p>';
+            }
+        } finally {
+            isLoading = false;
+            loading.style.display = 'none';
+            loadMore.style.display = 'none';
+        }
+    }
+
+    // Función para crear elementos de la galería con lazy loading
+    function createGalleryItem(item) {
+        const galleryItem = document.createElement('div');
+        galleryItem.className = 'gallery-item';
+        
+        const imageContainer = document.createElement('div');
+        imageContainer.className = 'image-container';
+        
+        const img = document.createElement('img');
+        img.className = 'gallery-image skeleton';
+        img.loading = 'lazy';
+        img.dataset.src = item.imagen_url; // Usamos data-src para lazy loading
+        img.alt = `Imagen de ${item.nombre}`;
+        
+        // Añadir indicador HEIC si es necesario
+        if (isHeic(item.imagen_url)) {
+            const heicBadge = document.createElement('div');
+            heicBadge.className = 'heic-badge';
+            heicBadge.textContent = 'HEIC';
+            imageContainer.appendChild(heicBadge);
+        }
+        
+        // Observar la imagen para lazy loading
+        observer.observe(img);
+        
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'gallery-info';
+        
+        const userName = document.createElement('div');
+        userName.className = 'user-name';
+        userName.innerHTML = `<i class="fas fa-user"></i> ${item.nombre || 'Anónimo'}`;
+        
+        const messagePreview = document.createElement('div');
+        messagePreview.className = 'message-preview';
+        messagePreview.textContent = item.mensaje || '';
+        
+        // Evento para abrir el modal
+        galleryItem.addEventListener('click', () => {
+            // Mostrar modal con spinner mientras se carga
+            modalImage.src = '';
+            modalImage.classList.remove('loaded');
+            modalMessage.textContent = item.mensaje || '';
+            imageModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            // Si es HEIC, convertir primero
+            if (isHeic(item.imagen_url)) {
+                convertHeicToJpeg(item.imagen_url)
+                    .then(jpegUrl => {
+                        modalImage.src = jpegUrl;
+                        modalImage.classList.add('loaded');
+                    })
+                    .catch(error => {
+                        console.error('Error convirtiendo HEIC para modal:', error);
+                        modalImage.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="300" height="200" fill="#f0f0f0"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#888" font-size="16">Error al cargar</text></svg>';
+                        modalImage.classList.add('loaded');
+                    });
+            } else {
+                // Cargar imagen normal
+                const highResImg = new Image();
+                highResImg.src = item.imagen_url;
+                highResImg.onload = () => {
+                    modalImage.src = item.imagen_url;
+                    modalImage.classList.add('loaded');
+                };
+                highResImg.onerror = () => {
+                    modalImage.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="300" height="200" fill="#f0f0f0"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#888" font-size="16">Imagen no disponible</text></svg>';
+                    modalImage.classList.add('loaded');
+                };
+            }
+            
+            // Animación para el mensaje
+            setTimeout(() => {
+                modalMessage.classList.add('show');
+            }, 300);
+        });
+        
+        imageContainer.appendChild(img);
+        infoDiv.appendChild(userName);
+        infoDiv.appendChild(messagePreview);
+        galleryItem.appendChild(imageContainer);
+        galleryItem.appendChild(infoDiv);
+        gallery.appendChild(galleryItem);
+    }
+
+    // Función para cerrar el modal
+    function closeModal() {
+        modalMessage.classList.remove('show');
+        modalImage.classList.remove('loaded');
+        
+        setTimeout(() => {
+            imageModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }, 300);
+    }
+
+    // Cerrar modal al tocar fuera de la imagen
+    imageModal.addEventListener('click', (e) => {
+        if (e.target === imageModal) {
+            closeModal();
+        }
+    });
+
+    // Búsqueda con debounce para mejorar rendimiento
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        
+        searchTimeout = setTimeout(() => {
+            const searchTerm = searchInput.value.trim();
+            currentPage = 1;
+            allDataLoaded = false;
+            loadImages(searchTerm);
+        }, 400);
+    });
+
+    // Cargar imágenes iniciales
+    window.addEventListener('DOMContentLoaded', () => {
+        // Obtener el total de imágenes en la base de datos
+        getTotalImagesCount();
+        
+        // Cargar las imágenes
+        loadImages();
+    });
+
+    // Cargar más imágenes al hacer scroll
+    window.addEventListener('scroll', () => {
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800 && 
+            !isLoading && 
+            !allDataLoaded && 
+            searchInput.value.trim() === '') {
+            loadImages();
+        }
+    });
+
+<!-- Librería JSZip -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<!-- Tu código para generar el ZIP -->
+<script>
+// Función auxiliar para convertir a PNG con canvas
+async function convertToPng(url) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob((blob) => {
+                resolve(blob);
+            }, "image/png");
+        };
+        img.onerror = () => reject("Error cargando imagen");
+        img.src = url;
+    });
+}
+
+// Descargar todas las imágenes como un ZIP
+async function downloadAllAsZip() {
+    if (imagesData.length === 0) {
+        alert("No hay imágenes cargadas aún.");
+        return;
+    }
+
+    const zip = new JSZip();
+    let indexMap = {}; // Para evitar sobrescribir archivos
+
+    for (const item of imagesData) {
+        try {
+            const url = isHeic(item.imagen_url) 
+                ? await convertHeicToJpeg(item.imagen_url) 
+                : item.imagen_url;
+
+            const pngBlob = await convertToPng(url);
+            const arrayBuffer = await pngBlob.arrayBuffer();
+
+            const baseName = (item.nombre || "Anonimo").replace(/[^a-z0-9]/gi, "_");
+            indexMap[baseName] = (indexMap[baseName] || 0) + 1;
+            const fileName = `${baseName}_${indexMap[baseName]}.png`;
+
+            zip.file(fileName, arrayBuffer);
+        } catch (err) {
+            console.error("Error procesando imagen:", err);
+        }
+    }
+
+    const content = await zip.generateAsync({ type: "blob" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(content);
+    a.download = "imagenes_usuarios.zip";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+
+document.getElementById("downloadAllBtn").addEventListener("click", downloadAllAsZip);
+</script>
+
 </script>
 </body>
 </html>
