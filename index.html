@@ -21,11 +21,13 @@
     .search-container{position:relative;max-width:350px;width:100%;}
     .search-container input{width:100%;padding:.7rem 1rem;padding-left:2.8rem;border-radius:50px;border:1px solid #ddd;font-size:.9rem;background-color:white;box-shadow:0 2px 8px rgba(0,0,0,0.05);}
     .search-container i{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:#777;font-size:.9rem;}
-    .download-btn{background:#ff6b6b;border:none;padding:.7rem 1.2rem;border-radius:50px;color:white;font-size:.9rem;font-weight:600;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,0.2);transition:all .3s ease;}
+    .download-btn{background:#ff6b6b;border:none;padding:.7rem 1.2rem;border-radius:50px;color:white;font-size:.9rem;font-weight:600;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,0.2);transition:all .3s ease;display:flex;align-items:center;gap:0.5rem;}
     .download-btn:hover{background:#e55353;transform:translateY(-2px);}
+    .download-btn:disabled{background:#ccc;cursor:not-allowed;transform:none;}
+    .download-options{display:flex;gap:0.5rem;margin-top:1rem;justify-content:center;flex-wrap:wrap;}
     .gallery-container{max-width:1400px;margin:1.2rem auto;padding:0 .8rem;}
-    .gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem;}
-    .gallery-item{background:white;border-radius:8px;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,0.03);display:flex;flex-direction:column;animation:fadeIn .5s ease forwards;}
+    .gallery{display:grid;grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));gap:.7rem;}
+    .gallery-item{background:white;border-radius:8px;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,0.03);display:flex;flex-direction:column;animation:fadeIn .5s ease forwards;position:relative;}
     @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
     .image-container{position:relative;width:100%;padding-top:100%;overflow:hidden;background:linear-gradient(45deg,#f5f5f5,#eaeaea);}
     .gallery-image{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;transition:opacity .5s ease;opacity:0;}
@@ -42,6 +44,24 @@
     .footer-logo{font-size:1.1rem;font-weight:bold;margin-bottom:.6rem;color:white;}
     .footer-logo span{color:#ff6b6b;}
     
+    /* Checkbox styles */
+    .checkbox-container{position:absolute;top:10px;left:10px;z-index:10;}
+    .checkbox-container input[type="checkbox"]{display:none;}
+    .checkbox-container label{display:inline-block;width:22px;height:22px;background:white;border-radius:4px;border:2px solid #ddd;cursor:pointer;position:relative;transition:all 0.2s ease;}
+    .checkbox-container input[type="checkbox"]:checked + label{background:#ff6b6b;border-color:#ff6b6b;}
+    .checkbox-container input[type="checkbox"]:checked + label:after{content:"✓";position:absolute;color:white;font-size:14px;font-weight:bold;top:50%;left:50%;transform:translate(-50%, -50%);}
+    
+    /* Selection controls */
+    .selection-controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding:0.5rem;background:#f8f9fa;border-radius:8px;flex-wrap:wrap;gap:0.5rem;}
+    .selection-info{font-size:0.9rem;font-weight:500;}
+    .selection-actions{display:flex;gap:0.5rem;}
+    .selection-btn{background:#6c757d;border:none;padding:0.5rem 1rem;border-radius:4px;color:white;font-size:0.8rem;cursor:pointer;transition:all .2s ease;}
+    .selection-btn:hover{background:#5a6268;}
+    .selection-btn.select-all{background:#28a745;}
+    .selection-btn.select-all:hover{background:#218838;}
+    .selection-btn.deselect-all{background:#dc3545;}
+    .selection-btn.deselect-all:hover{background:#c82333;}
+    
     /* Loading styles */
     .loading{display:none;flex-direction:column;align-items:center;justify-content:center;padding:2rem;color:#666;}
     .loading i{font-size:2rem;margin-bottom:1rem;animation:spin 1s linear infinite;}
@@ -49,6 +69,13 @@
     
     /* End of results message */
     .end-results{text-align:center;padding:2rem;color:#888;display:none;}
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .gallery{grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));}
+      .selection-controls{flex-direction:column;align-items:flex-start;}
+      .selection-actions{width:100%;justify-content:space-between;}
+    }
   </style>
 </head>
 <body>
@@ -64,15 +91,30 @@
       <button id="downloadAllBtn" class="download-btn">
         <i class="fas fa-download"></i> Descargar todas
       </button>
+      <button id="downloadSelectedBtn" class="download-btn" disabled>
+        <i class="fas fa-download"></i> Descargar seleccionadas
+      </button>
+    </div>
+    <div class="download-options">
+      <button id="selectAllBtn" class="selection-btn select-all">Seleccionar todas</button>
+      <button id="deselectAllBtn" class="selection-btn deselect-all">Deseleccionar todas</button>
     </div>
     <div class="stats-container">
       <div class="stat-card"><i class="fas fa-images"></i><span>Fotos cargadas: <span id="loadedImages">0</span></span></div>
       <div class="stat-card"><i class="fas fa-database"></i><span>Total fotos compartidas: <span id="totalImages">0</span></span></div>
+      <div class="stat-card"><i class="fas fa-check-square"></i><span>Seleccionadas: <span id="selectedCount">0</span></span></div>
     </div>
   </div>
 </header>
 
 <div class="gallery-container">
+  <div class="selection-controls">
+    <div class="selection-info" id="selectionInfo">0 imágenes seleccionadas</div>
+    <div class="selection-actions">
+      <button id="selectPageBtn" class="selection-btn select-all">Seleccionar página</button>
+      <button id="deselectPageBtn" class="selection-btn deselect-all">Deseleccionar página</button>
+    </div>
+  </div>
   <div id="gallery" class="gallery"></div>
   <div id="loading" class="loading">
     <i class="fas fa-spinner"></i>
@@ -101,16 +143,24 @@
   const searchInput = document.getElementById('searchInput');
   const loadedImages = document.getElementById('loadedImages');
   const totalImages = document.getElementById('totalImages');
+  const selectedCount = document.getElementById('selectedCount');
+  const selectionInfo = document.getElementById('selectionInfo');
   const endResults = document.getElementById('endResults');
+  const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
+  const selectAllBtn = document.getElementById('selectAllBtn');
+  const deselectAllBtn = document.getElementById('deselectAllBtn');
+  const selectPageBtn = document.getElementById('selectPageBtn');
+  const deselectPageBtn = document.getElementById('deselectPageBtn');
 
   let currentPage = 1;
-  let itemsPerPage = 300; // Aumentado a 300 imágenes por carga
+  let itemsPerPage = 300;
   let isLoading = false;
   let allDataLoaded = false;
   let imagesData = [];
   let totalImagesCount = 0;
   let observer;
   let searchTerm = '';
+  let selectedImages = new Set();
 
   // Función para inicializar el Intersection Observer para lazy loading
   function initIntersectionObserver() {
@@ -243,6 +293,15 @@
   function createGalleryItem(item) {
     const div = document.createElement('div');
     div.className = 'gallery-item';
+    div.dataset.imageUrl = item.imagen_url;
+    
+    // Checkbox para selección
+    const checkboxContainer = document.createElement('div');
+    checkboxContainer.className = 'checkbox-container';
+    checkboxContainer.innerHTML = `
+      <input type="checkbox" id="checkbox-${item.imagen_url}" data-url="${item.imagen_url}">
+      <label for="checkbox-${item.imagen_url}"></label>
+    `;
     
     const imageContainer = document.createElement('div');
     imageContainer.className = 'image-container';
@@ -261,9 +320,87 @@
       <div class="message-preview">${item.mensaje || ''}</div>
     `;
     
+    div.appendChild(checkboxContainer);
     div.appendChild(imageContainer);
     div.appendChild(info);
     gallery.appendChild(div);
+    
+    // Añadir evento al checkbox
+    const checkbox = checkboxContainer.querySelector('input');
+    checkbox.addEventListener('change', function() {
+      if (this.checked) {
+        selectedImages.add(item.imagen_url);
+      } else {
+        selectedImages.delete(item.imagen_url);
+      }
+      updateSelectionInfo();
+    });
+  }
+
+  // Actualizar información de selección
+  function updateSelectionInfo() {
+    const count = selectedImages.size;
+    selectedCount.textContent = count;
+    selectionInfo.textContent = `${count} imagen(es) seleccionada(s)`;
+    downloadSelectedBtn.disabled = count === 0;
+  }
+
+  // Seleccionar todas las imágenes
+  function selectAllImages() {
+    document.querySelectorAll('.checkbox-container input[type="checkbox"]').forEach(checkbox => {
+      checkbox.checked = true;
+      selectedImages.add(checkbox.dataset.url);
+    });
+    updateSelectionInfo();
+  }
+
+  // Deseleccionar todas las imágenes
+  function deselectAllImages() {
+    document.querySelectorAll('.checkbox-container input[type="checkbox"]').forEach(checkbox => {
+      checkbox.checked = false;
+    });
+    selectedImages.clear();
+    updateSelectionInfo();
+  }
+
+  // Seleccionar imágenes de la página actual
+  function selectPageImages() {
+    const currentPageImages = [];
+    document.querySelectorAll('.gallery-item').forEach(item => {
+      currentPageImages.push(item.dataset.imageUrl);
+    });
+    
+    currentPageImages.forEach(url => {
+      selectedImages.add(url);
+    });
+    
+    document.querySelectorAll('.checkbox-container input[type="checkbox"]').forEach(checkbox => {
+      if (currentPageImages.includes(checkbox.dataset.url)) {
+        checkbox.checked = true;
+      }
+    });
+    
+    updateSelectionInfo();
+  }
+
+  // Deseleccionar imágenes de la página actual
+  function deselectPageImages() {
+    const currentPageImages = [];
+    document.querySelectorAll('.gallery-item').forEach(item => {
+      currentPageImages.push(item.dataset.imageUrl);
+    });
+    
+    currentPageImages.forEach(url => {
+      selectedImages.delete(url);
+    });
+    
+    document.querySelectorAll('.checkbox-container input[type="checkbox"]').forEach(checkbox => {
+      if (currentPageImages.includes(checkbox.dataset.url)) {
+        checkbox.checked = false;
+      }
+    });
+    
+    updateSelectionInfo();
   }
 
   // Función para manejar el scroll infinito
@@ -293,6 +430,8 @@
         allDataLoaded = false;
         gallery.innerHTML = '';
         endResults.style.display = 'none';
+        selectedImages.clear();
+        updateSelectionInfo();
         
         // Cargar resultados de búsqueda
         loadImages(searchTerm);
@@ -353,11 +492,43 @@
     }
   }
 
+  // --- DESCARGAR SELECCIONADAS ---
+  async function downloadSelectedImages() {
+    if (selectedImages.size === 0) {
+      alert("No hay imágenes seleccionadas.");
+      return;
+    }
+    
+    const nameCount = {};
+    const selectedItems = imagesData.filter(item => selectedImages.has(item.imagen_url));
+    
+    for (const item of selectedItems) {
+      try {
+        const url = isHeic(item.imagen_url) ? await convertHeicToJpeg(item.imagen_url) : item.imagen_url;
+        const pngBlob = await convertToPng(url);
+        
+        let safeName = (item.nombre || "Anonimo").replace(/[^a-z0-9]/gi, "_");
+        nameCount[safeName] = (nameCount[safeName] || 0) + 1;
+        const filename = `${safeName}_${nameCount[safeName]}.png`;
+        
+        downloadBlob(pngBlob, filename);
+        await new Promise(r => setTimeout(r, 400)); // Pequeña pausa entre descargas
+      } catch(e) {
+        console.error("Error descargando imagen:", e);
+      }
+    }
+  }
+
   // Inicializar la aplicación
   function initApp() {
     setupInfiniteScroll();
     setupSearch();
     document.getElementById("downloadAllBtn").addEventListener("click", downloadAllImages);
+    document.getElementById("downloadSelectedBtn").addEventListener("click", downloadSelectedImages);
+    selectAllBtn.addEventListener("click", selectAllImages);
+    deselectAllBtn.addEventListener("click", deselectAllImages);
+    selectPageBtn.addEventListener("click", selectPageImages);
+    deselectPageBtn.addEventListener("click", deselectPageImages);
     
     // Cargar imágenes iniciales
     loadImages();
